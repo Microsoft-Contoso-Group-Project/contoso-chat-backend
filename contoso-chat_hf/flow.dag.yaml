@@ -71,6 +71,6 @@ nodes:
     deployment_name: meta_llama3_instruct_Az
     prompt_text: ${customer_prompt.output}
     question: ${inputs.question}
-    top_p: 0.5
+    top_p: 0.1
   connection: meta_llama3_instruct_8B
   api: chat
