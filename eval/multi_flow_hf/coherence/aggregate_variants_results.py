@@ -7,7 +7,6 @@ import numpy as np
 def aggregate_variants_results(results: List[dict]):
     aggregate_results = {}
     for result in results:
-        print("results",results)
         for name, value in result.items():
             if name not in aggregate_results.keys():
                 aggregate_results[name] = []

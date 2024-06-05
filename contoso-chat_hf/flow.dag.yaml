@@ -68,8 +68,9 @@ nodes:
     type: code
     path: llm_response.jinja2
   inputs:
-    deployment_name: gpt-35-turbo
+    deployment_name: meta_llama3_instruct_Az
     prompt_text: ${customer_prompt.output}
     question: ${inputs.question}
-  connection: aoai-connection
+    top_p: 0.5
+  connection: meta_llama3_instruct_8B
   api: chat

@@ -1,5 +1,5 @@
-id: QnA_Relevance_llm_based_dev_test
-name: QnA Relevance Evaluation
+id: QnA_groundedness_eval
+name: QnA Groundedness Evaluation
 environment:
   python_requirements_txt: requirements.txt
 inputs:
@@ -10,23 +10,24 @@ inputs:
   answer:
     type: string
 outputs:
-  gpt_relevance:
+  gpt_groundedness:
     type: object
-    reference: ${concat_scores.output.gpt_relevance}
+    reference: ${concat_scores.output.gpt_groundedness}
 nodes:
-- name: relevance_score
+- name: groundedness_score
   type: llm
   source:
     type: code
-    path: relevance_score.jinja2
+    path: groundedness_score.jinja2
   inputs:
-    question: ${inputs.question}
     context: ${inputs.context}
     answer: ${inputs.answer}
+    max_tokens: 256
     deployment_name: gpt-4
     temperature: 0
+    question: ${inputs.question}
     chat_history: "[]"
-  connection: gpt2_Az
+  connection: aoai-connection
   api: chat
 - name: concat_scores
   type: python
@@ -34,7 +35,7 @@ nodes:
     type: code
     path: concat_scores.py
   inputs:
-    relevance_score: ${relevance_score.output}
+    groundesness_score: ${groundedness_score.output}
 - name: aggregate_variants_results
   type: python
   source:

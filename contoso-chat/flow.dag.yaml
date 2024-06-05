@@ -34,6 +34,7 @@ nodes:
     connection: aoai-connection
     input: ${inputs.question}
     deployment_name: text-embedding-ada-002
+  aggregation: false
 - name: retrieve_documentation
   type: python
   source:
