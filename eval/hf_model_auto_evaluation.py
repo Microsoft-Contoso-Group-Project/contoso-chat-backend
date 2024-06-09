@@ -6,6 +6,8 @@ from nbconvert.preprocessors import ExecutePreprocessor
 import subprocess
 import json
 
+from get_local_eval_results import MetricsLoader
+
 # Custom loader and dumper to maintain order
 class OrderedLoader(yaml.SafeLoader):
     pass
@@ -89,3 +91,16 @@ if __name__ == '__main__':
     yaml_path = 'contoso-chat-backend/contoso-chat_hf/flow_b.dag.yaml'
     eval_script_path = 'contoso-chat-backend/eval/evaluate-chat-prompt-flow_local.ipynb'
     auto_evaluate_model(yaml_path, models, top_ps, api_base_mapping, eval_script_path)
+
+    base_directory = '/Users/yonghuizhu'
+    loader = MetricsLoader(base_directory)
+    loader.load_metrics_from_runs(date='2024_06_09')
+    metrics_table = loader.create_metrics_table()
+
+    # Save the DataFrame to Excel
+    file_name = 'metrics_data.xlsx'
+    metrics_table.to_excel(file_name, index=False)
+    print(metrics_table)
+
+
+
