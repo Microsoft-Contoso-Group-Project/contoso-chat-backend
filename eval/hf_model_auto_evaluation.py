@@ -57,21 +57,32 @@ def run_eval_script_ipynb(eval_script_path, model_name, top_p):
     run_notebook(eval_script_path, output_path)
 
 def auto_evaluate_model(yaml_path, models, top_ps, embeddings, HF_endpoints, eval_script_path):
+    cur_vector_dimension=0
     for model_name in models:
         for top_p in top_ps:
             for embedding in embeddings:
-                
-                print(f"Current Model: {model_name}, top_p: {top_p}")
+                print("---" *20)
+                print(f"Current Model: {model_name}, top_p: {top_p}, embedding: {embedding}")
+                print("+++" *20)
                 if model_name in HF_endpoints.keys():
                     new_yaml_path = yaml_path.replace("flow_b.dag.yaml","flow.dag.yaml")
-                    if isinstance(embedding,tuple) or embedding != "text-embedding-ada-002":
+                    if isinstance(embedding,tuple) :
                         yaml_path = yaml_path.replace("flow_b.dag.yaml","flow_custom_b.dag.yaml")
                         data = load_yaml(yaml_path)
                         modified_data = modify_yaml(data, model_name, embedding, top_p)
-                        notebook_path = "contoso-chat-backend/data/product_info/create-azure-search_custom_embedding.ipynb"
-                        update_vector_search_dimensions(notebook_path, new_dimension_value=embedding[2])
-                        run_notebook(notebook_path,output_path=notebook_path)
+                        if cur_vector_dimension != embedding[2]:
+                            notebook_path = "contoso-chat-backend/data/product_info/create-azure-search_custom_embedding.ipynb"
+                            update_vector_search_dimensions(notebook_path, new_dimension_value=embedding[2])
+                            run_notebook(notebook_path,output_path=notebook_path)
+                            cur_vector_dimension = embedding[2]
+                            print("embedding index update completed")
                     else:
+                        if cur_vector_dimension != 1536:
+                            notebook_path = "contoso-chat-backend/data/product_info/create-azure-search.ipynb"
+                            update_vector_search_dimensions(notebook_path, new_dimension_value=1536)
+                            run_notebook(notebook_path,output_path=notebook_path)
+                            cur_vector_dimension = 1536
+                            print("embedding index update completed")
                         data = load_yaml(yaml_path)
                         modified_data = modify_yaml(data, model_name, embedding,top_p)
                     save_yaml(modified_data, new_yaml_path)
@@ -128,7 +139,7 @@ if __name__ == '__main__':
 
     models = ["meta_llama3_instruct_70B"]
     top_ps = [0.1]
-    embeddings=[("bge-large","bge-large-en-v1.5",1024)] #"text-embedding-ada-002"
+    embeddings=["text-embedding-ada-002",]#("bge-large","bge-large-en-v1.5",1024)] #"text-embedding-ada-002"
     
     yaml_path = 'contoso-chat-backend/contoso-chat_hf/flow_b.dag.yaml' #evaluate-chat-prompt-flow_local will run the flow.dag.yaml, and flow_b.dag.yaml is used as a template'
     eval_script_path = 'contoso-chat-backend/eval/evaluate-chat-prompt-flow_local.ipynb'
