@@ -10,12 +10,18 @@ class MetricsLoader:
     def load_metrics_from_runs(self, date='2024_06_09'):
         # Access the directory containing all runs
         full_path = os.path.join(self.base_directory, '.promptflow', '.runs')
-
+        matched_entry_dict={}
         # List all subdirectories that start with the specified date
         for entry in os.listdir(full_path):
-            if entry.startswith(date) and os.path.isdir(os.path.join(full_path, entry)):
+            
+            if entry.startswith(date) and entry.endswith("chat_eval_run") and os.path.isdir(os.path.join(full_path, entry)):
                 # Construct the path to the metrics.json file
                 metrics_path = os.path.join(full_path, entry, 'metrics.json')
+                print(entry)
+                # entry_name = entry.replace("chat_eval_run","")
+                # entry_name = entry_name.replace(date+"_","")
+                
+                
                 
                 # Check if the metrics.json file exists
                 if os.path.isfile(metrics_path):
@@ -23,47 +29,91 @@ class MetricsLoader:
                     with open(metrics_path, 'r') as file:
                         metrics_data = json.load(file)
                         self.all_metrics[entry] = metrics_data
+                    # matched_entry_dict[int(entry_name)]=metrics_data
 
-    def create_metrics_table(self):
+        # print(matched_entry_dict.keys())
+        # matched_entry_names = matched_entry_dict.keys()
+        # self.latest_run_entry_name = max(matched_entry_names)
+
+
+    def create_metrics_table(self, config_list):
+        def _add_to_row(configs,metrics):
+            data_row = {
+                        'Model':  configs["model_name"],
+                        'Max tokens': max_tokens_look_up[configs["model_name"]],  # Placeholder for Max tokens
+                        'Top_p': configs["top_p"],
+                        'Embedding': configs['embedding'],  # Placeholder for Temperature
+                        'Template': 'original',  # Placeholder for template
+                        'Coherence': metrics.get('gpt_coherence', ''),
+                        'Coherence_pass_rate': metrics.get('gpt_coherence_pass_rate(%)', ''),
+                        'Groundedness': metrics.get('gpt_groundedness', ''),
+                        'Groundedness_pass_rate': metrics.get('gpt_groundedness_pass_rate(%)', ''),
+                        'Fluency': metrics.get('gpt_fluency', ''),
+                        'Fluency_pass_rate': metrics.get('gpt_fluency_pass_rate(%)', ''),
+                        'Relevance': metrics.get('gpt_relevance', ''),
+                        'Relevance_pass_rate': metrics.get('gpt_relevance_pass_rate(%)', ''),
+                        'Notebook_path': os.path.join(os.getcwd(), "contoso-chat-backend", "eval", "auto_eval", 
+                                f"{configs['model_name']}_top{configs['top_p']}_emb{configs['embedding']}_{configs['template']}template.ipynb"),
+                        'Run_id': run_id
+                    }
+            return data_row
+
         # Define the DataFrame columns
         columns = [
-            'Model', 'Max tokens', 'Temperature', 'Template',
+            'Model', 'Max tokens', 'Top_p', 'Embedding','Template',
             'Coherence', 'Coherence_pass_rate', 
             'Groundedness', 'Groundedness_pass_rate', 
             'Fluency', 'Fluency_pass_rate', 
-            'Relevance', 'Relevance_pass_rate', 'Run_id'
+            'Relevance', 'Relevance_pass_rate', 'Notebook_path','Run_id'
         ]
+        ['aoai-connection', 'contoso-search', 'meta_llama3_instruct_8B', 'meta_llama3_instruct_70B', 'meta_llama3_8B', 'meta_llama3_70B', 'gpt2', 'Phi_3_mini_4k_instruct', 'Phi_3_mini_128k_instruct', 'bge-small', 'bge-large', 'google_gemma', 'Mixtral']
+        max_tokens_look_up ={'meta_llama3_instruct_8B': 8000, 'meta_llama3_instruct_70B':8000, 'meta_llama3_8B':8000, 'meta_llama3_70B':8000, 
+                             'Phi_3_mini_4k_instruct': 4000, 'Phi_3_mini_128k_instruct':128000, 
+                             'google_gemma': 8000, 'Mixtral':32000
+        }
 
         # Prepare list to store all the data rows
         data_rows = []
         
-        # Process each metrics data in all_metrics
+        # Temporary dictionary to hold filtered metrics
+        filtered_metrics = {}
+        new_metrics={}
+        
         for run_id, metrics in self.all_metrics.items():
-            data_row = {
-                'Model': '',  # Placeholder for Model
-                'Max tokens': '',  # Placeholder for Max tokens
-                'Temperature': '',  # Placeholder for Temperature
-                'Template': '',  # Placeholder for template
-                'Coherence': metrics.get('gpt_coherence', ''),
-                'Coherence_pass_rate': metrics.get('gpt_coherence_pass_rate(%)', ''),
-                'Groundedness': metrics.get('gpt_groundedness', ''),
-                'Groundedness_pass_rate': metrics.get('gpt_groundedness_pass_rate(%)', ''),
-                'Fluency': metrics.get('gpt_fluency', ''),
-                'Fluency_pass_rate': metrics.get('gpt_fluency_pass_rate(%)', ''),
-                'Relevance': metrics.get('gpt_relevance', ''),
-                'Relevance_pass_rate': metrics.get('gpt_relevance_pass_rate(%)', ''),
-                'Run_id': run_id
-            }
+            #print((run_id, metrics))  # Print current run and its metrics
+            if 'config' in metrics.keys():
+                filtered_metrics[run_id] = metrics  # Include only if 'config' is present
+                print(f"Existing metrics is {run_id} ") 
+            else:
+                new_metrics[run_id]= metrics
+                print(f"New metrics is {run_id} as it lacks 'config' in metrics")  # Optionally print a message about the removal
+       
+         # Replace the original dictionary with the filtered one
+        
+        #assert len(self.all_metrics) == len(config_list), "The lengths of all_metrics and config_list do not match after filtering."
+        #for idx, configs  in enumerate(config_list):            
+            # Process each metrics data in all_metrics
+        for run_id, metrics  in filtered_metrics.items():   #load existing run with same configuration
+            configs = metrics['config']
+            #if configs == metrics['config']:
+            data_row = _add_to_row(configs,metrics)
             data_rows.append(data_row)
+
+        for idx, (run_id, metrics)  in enumerate(new_metrics.items()):   #add current run 
+            data_row = _add_to_row(config_list[idx],metrics)
+            data_rows.append(data_row)
+            self.all_metrics[run_id]['config'] = config_list[idx]
 
         # Creating DataFrame
         return pd.DataFrame(data_rows, columns=columns)
 
 if __name__ == '__main__':
+    config_list = [{"model_name":'Phi_3_mini_4k_instruct',"top_p":0.1,"embedding":"text-embedding-ada-002",'template':'original'},{"model_name":'Phi_3_mini_4k_instruct',"top_p":0.1,"embedding":"text-embedding-ada-002",'template':'original'},{"model_name":'Phi_3_mini_4k_instruct',"top_p":0.1,"embedding":"text-embedding-ada-002",'template':'original'},{"model_name":'Phi_3_mini_4k_instruct',"top_p":0.1,"embedding":"text-embedding-ada-002",'template':'original'}]
+
     base_directory = '/Users/yonghuizhu'
     loader = MetricsLoader(base_directory)
     loader.load_metrics_from_runs()
-    metrics_table = loader.create_metrics_table()
+    metrics_table = loader.create_metrics_table(config_list)
 
     # Save the DataFrame to Excel
     file_name = 'metrics_data.xlsx'

@@ -55,12 +55,12 @@ nodes:
     type: code
   type: prompt
 - api: chat
-  connection: meta_llama3_instruct_70B
+  connection: Phi_3_mini_128k_instruct
   inputs:
     deployment_name: meta_llama3_instruct_Az
     prompt_text: ${customer_prompt.output}
     question: ${inputs.question}
-    top_p: 0.1
+    top_p: 0.3
   name: llm_response
   source:
     path: llm_response.jinja2

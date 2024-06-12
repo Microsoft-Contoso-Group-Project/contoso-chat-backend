@@ -71,5 +71,5 @@ nodes:
     deployment_name: gpt-35-turbo
     prompt_text: ${customer_prompt.output}
     question: ${inputs.question}
-  connection: aoai-connection
+  connection: google_gemma
   api: chat
