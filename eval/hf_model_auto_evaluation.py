@@ -7,7 +7,7 @@ import json
 import re
 import shutil
 from get_local_eval_results import MetricsLoader
-
+from utils import *
 
 # Custom loader and dumper to maintain order
 class OrderedLoader(yaml.SafeLoader):
@@ -265,7 +265,24 @@ if __name__ == '__main__':
     # Save the DataFrame to Excel
     file_name = 'metrics_data.xlsx'
     metrics_table.to_excel(file_name, index=False)
-    print(metrics_table)
+    print("full_metric_table",metrics_table)
+
+    file_path = f'{os.getcwd()}/metrics_data.xlsx'
+    top_k = 3
+    weights = {
+        'coherence': 0.2,
+        'coherence_pass_rate': 0.1,
+        'groundedness': 0.2,
+        'groundedness_pass_rate': 0.1,
+        'fluency': 0.2,
+        'fluency_pass_rate': 0.1,
+        'relevance': 0.2,
+        'relevance_pass_rate': 0.1
+    }
+    output_file = f'{os.getcwd()}/contoso-chat-backend/eval/auto_eval/top_{top_k}_configurations.xlsx'
+
+    top_configurations = get_top_k_configurations(file_path, top_k, weights, output_file)
+    print("top_K_table",top_configurations)
     
     
 

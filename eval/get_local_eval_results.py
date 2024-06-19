@@ -25,7 +25,7 @@ class MetricsLoader:
                             metrics_data = json.load(file)
                             self.all_metrics[entry] = metrics_data
             else:
-                if eentry.endswith("chat_eval_run") and os.path.isdir(os.path.join(full_path, entry)):
+                if entry.endswith("chat_eval_run") and os.path.isdir(os.path.join(full_path, entry)):
                     # Construct the path to the metrics.json file
                     metrics_path = os.path.join(full_path, entry, 'metrics.json')
                     print(entry)
@@ -131,10 +131,9 @@ class MetricsLoader:
             if config_keys not in existing_config_keys:
                 outstanding_config.append(config)
                 
-        print("existing config", existing_config)
+        
         print("outstanding_config",outstanding_config)
-        print("filtered metric", filtered_metrics)
-        print("outstanding metric", new_metrics)
+        print("outstanding metric", new_metrics.keys())
 
         for idx, (run_id, metrics)  in enumerate(new_metrics.items()):   #add current run 
             data_row = _add_to_row(outstanding_config[idx],metrics)
