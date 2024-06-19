@@ -2,12 +2,12 @@ import yaml
 import os
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-
 import subprocess
 import json
 import re
-
+import shutil
 from get_local_eval_results import MetricsLoader
+
 
 # Custom loader and dumper to maintain order
 class OrderedLoader(yaml.SafeLoader):
@@ -60,9 +60,71 @@ def run_eval_script_ipynb(eval_script_path, config):
                            f"{config['model_name']}_top{config['top_p']}_emb{config['embedding']}_{config['template']}template.ipynb")
     run_notebook(eval_script_path, output_path)
 
+def count_folders(directory):
+    if os.path.exists(directory):
+        return sum(os.path.isdir(os.path.join(directory, item)) for item in os.listdir(directory))
+    else:
+        return 0
+
+# Function to count elements in the JSON file
+def count_json_elements(json_file):
+    if os.path.exists(json_file):
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+            return len(data)
+    else:
+        return 0
+
+# Function to delete the two latest folders in a directory
+def delete_latest_folders(directory, num_folders_to_delete):
+    if os.path.exists(directory):
+        folders = [os.path.join(directory, item) for item in os.listdir(directory) if os.path.isdir(os.path.join(directory, item))]
+        folders.sort(key=os.path.getmtime, reverse=True)
+        
+        for i in range(min(num_folders_to_delete, len(folders))):
+            folder_to_delete = folders[i]
+            print(f"Deleting folder: {folder_to_delete}")
+            shutil.rmtree(folder_to_delete)
+    else:
+        print(f"Directory {directory} does not exist.")
+
+def synch_runs_and_eval_log(json_file_path = 'contoso-chat-backend/eval/auto_eval/runs_config_log.json'
+                            ,runs_directory = '.promptflow/.runs'):
+    
+    root = os.getcwd()
+
+    # Remove the last component
+    path_components = root.split(os.sep)
+    root_without_last = os.sep.join(path_components[:-1])
+
+    full_runs_directory = os.path.join(root_without_last,runs_directory)
+    full_json_file_path = os.path.join(root,json_file_path)
+    # Count folders in .promptflow/.runs
+    num_folders = count_folders(full_runs_directory)
+
+    # Count elements in runs_config_log.json
+    num_json_elements = count_json_elements(full_json_file_path)
+    
+    
+    print(f"Number of runs in log:{num_json_elements}, Number of runs in promptflow:{num_folders}")
+    
+
+    # Check the condition
+    if num_folders == 2 * num_json_elements:
+        print(f"\033[93mThe number of folders in {runs_directory} is exactly twice the number of elements in {json_file_path}.\033[0m")
+    else:
+        print(f"The condition is not met: The number of folders in {runs_directory} is not twice the number of elements in {json_file_path}.")
+        
+        # Delete the two latest folders if the condition is not met
+        num_folders_to_delete = 2
+        delete_latest_folders(full_runs_directory, num_folders_to_delete)
+    
+
 def auto_evaluate_model(yaml_path, models, top_ps, embeddings, templates, HF_endpoints, eval_script_path,runs_config_log_path,use_exist):
     cur_vector_dimension=0
     config_list=[]
+
+    synch_runs_and_eval_log()
 
     if os.path.exists(runs_config_log_path) and os.path.getsize(runs_config_log_path) != 0:
         with open(runs_config_log_path, 'r') as file:
@@ -84,6 +146,7 @@ def auto_evaluate_model(yaml_path, models, top_ps, embeddings, templates, HF_end
                         continue
                     if model_name in HF_endpoints.keys():
                         new_yaml_path = yaml_path.replace("flow_b.dag.yaml","flow.dag.yaml")
+                        print(F"embedding:{embedding}, tuple: {isinstance(embedding,tuple)}")
                         if isinstance(embedding,tuple) :
                             yaml_path = yaml_path.replace("flow_b.dag.yaml","flow_custom_b.dag.yaml")
                             data = load_yaml(yaml_path)
@@ -163,9 +226,9 @@ if __name__ == '__main__':
     else:
         print("Failed to retrieve connections.")
 
-    models = ["Phi_3_mini_128k_instruct"]
+    models = ["Phi_3_mini_4k_instruct",'meta_llama3_instruct_70B']
               #'google_gemma']
-    top_ps = [0.3]
+    top_ps = [0.1,0.5,0.9]
     embeddings=["text-embedding-ada-002"]#,("bge-large","bge-large-en-v1.5",1024)] #"text-embedding-ada-002"]#("bge-large","bge-large-en-v1.5",1024)] #"text-embedding-ada-002"
     templates=['original']
     yaml_path = 'contoso-chat-backend/contoso-chat_hf/flow_b.dag.yaml' #evaluate-chat-prompt-flow_local will run the flow.dag.yaml, and flow_b.dag.yaml is used as a template'
@@ -173,7 +236,9 @@ if __name__ == '__main__':
     runs_config_log_path = os.getcwd()+'/contoso-chat-backend/eval/auto_eval/runs_config_log.json'
     
 
-    config_list = auto_evaluate_model(yaml_path, models, top_ps, embeddings, templates,api_base_mapping, eval_script_path,runs_config_log_path,use_exist=False)
+    config_list = auto_evaluate_model(yaml_path, models, top_ps, embeddings, 
+                                        templates,api_base_mapping, 
+                                        eval_script_path,runs_config_log_path,use_exist=True)
     
     
     if os.path.getsize(runs_config_log_path) != 0  :
@@ -193,7 +258,7 @@ if __name__ == '__main__':
 
     base_directory = '/Users/yonghuizhu'
     loader = MetricsLoader(base_directory)
-    loader.load_metrics_from_runs(date='2024_06_12')
+    loader.load_metrics_from_runs(date='2024_06_19')
     metrics_table = loader.create_metrics_table(config_list=config_list)
 
     

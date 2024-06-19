@@ -7,33 +7,34 @@ class MetricsLoader:
         self.base_directory = base_directory
         self.all_metrics = {}
 
-    def load_metrics_from_runs(self, date='2024_06_09'):
+    def load_metrics_from_runs(self, date=''):
         # Access the directory containing all runs
         full_path = os.path.join(self.base_directory, '.promptflow', '.runs')
         matched_entry_dict={}
         # List all subdirectories that start with the specified date
         for entry in os.listdir(full_path):
-            
-            if entry.startswith(date) and entry.endswith("chat_eval_run") and os.path.isdir(os.path.join(full_path, entry)):
-                # Construct the path to the metrics.json file
-                metrics_path = os.path.join(full_path, entry, 'metrics.json')
-                print(entry)
-                # entry_name = entry.replace("chat_eval_run","")
-                # entry_name = entry_name.replace(date+"_","")
-                
-                
-                
-                # Check if the metrics.json file exists
-                if os.path.isfile(metrics_path):
-                    # Load the metrics.json file
-                    with open(metrics_path, 'r') as file:
-                        metrics_data = json.load(file)
-                        self.all_metrics[entry] = metrics_data
-                    # matched_entry_dict[int(entry_name)]=metrics_data
-
-        # print(matched_entry_dict.keys())
-        # matched_entry_names = matched_entry_dict.keys()
-        # self.latest_run_entry_name = max(matched_entry_names)
+            if date != '':
+                if entry.startswith(date) and entry.endswith("chat_eval_run") and os.path.isdir(os.path.join(full_path, entry)):
+                    # Construct the path to the metrics.json file
+                    metrics_path = os.path.join(full_path, entry, 'metrics.json')
+                    print(entry)
+                    
+                    if os.path.isfile(metrics_path):
+                        # Load the metrics.json file
+                        with open(metrics_path, 'r') as file:
+                            metrics_data = json.load(file)
+                            self.all_metrics[entry] = metrics_data
+            else:
+                if eentry.endswith("chat_eval_run") and os.path.isdir(os.path.join(full_path, entry)):
+                    # Construct the path to the metrics.json file
+                    metrics_path = os.path.join(full_path, entry, 'metrics.json')
+                    print(entry)
+                    
+                    if os.path.isfile(metrics_path):
+                        # Load the metrics.json file
+                        with open(metrics_path, 'r') as file:
+                            metrics_data = json.load(file)
+                            self.all_metrics[entry] = metrics_data
 
 
     def create_metrics_table(self, config_list):
@@ -57,6 +58,22 @@ class MetricsLoader:
                         'Run_id': run_id
                     }
             return data_row
+        def _save_metrics_to_runs(all_metrics):
+            # Access the directory containing all runs
+            full_path = os.path.join(self.base_directory, '.promptflow', '.runs')
+            
+            # Iterate over all entries in self.all_metrics
+            for entry, metrics_data in self.all_metrics.items():
+            
+                # Construct the path to the metrics.json file
+                metrics_path = os.path.join(full_path, entry, 'metrics.json')
+                    
+                # Ensure the directory exists
+                if os.path.isdir(os.path.join(full_path, entry)):
+                    # Save the metrics_data back to the metrics.json file
+                    with open(metrics_path, 'w') as file:
+                        json.dump(metrics_data, file, indent=4)
+                    print(f"Metrics saved for {entry}")
 
         # Define the DataFrame columns
         columns = [
@@ -93,17 +110,40 @@ class MetricsLoader:
         #assert len(self.all_metrics) == len(config_list), "The lengths of all_metrics and config_list do not match after filtering."
         #for idx, configs  in enumerate(config_list):            
             # Process each metrics data in all_metrics
-        for run_id, metrics  in filtered_metrics.items():   #load existing run with same configuration
+        
+        
+            
+
+        existing_config = {}
+        outstanding_config = []
+        existing_config_keys = [(metrics['config']['model_name'], metrics['config']['top_p'],metrics['config']['embedding'],metrics['config']['template']) for metrics in filtered_metrics.values()]
+        for run_id, metrics in filtered_metrics.items(): #load existing run with same configuration
             configs = metrics['config']
             #if configs == metrics['config']:
             data_row = _add_to_row(configs,metrics)
             data_rows.append(data_row)
+            existing_config[run_id] = configs
+
+        for config in config_list:
+            # Create a tuple of keys from config that uniquely identifies it
+            config_keys = (config['model_name'], config['top_p'],config['embedding'],config['template'])  # Adjust keys as per your actual structure
+            
+            if config_keys not in existing_config_keys:
+                outstanding_config.append(config)
+                
+        print("existing config", existing_config)
+        print("outstanding_config",outstanding_config)
+        print("filtered metric", filtered_metrics)
+        print("outstanding metric", new_metrics)
 
         for idx, (run_id, metrics)  in enumerate(new_metrics.items()):   #add current run 
-            data_row = _add_to_row(config_list[idx],metrics)
+            data_row = _add_to_row(outstanding_config[idx],metrics)
             data_rows.append(data_row)
-            self.all_metrics[run_id]['config'] = config_list[idx]
-
+            self.all_metrics[run_id]['config'] = outstanding_config[idx]
+        
+        
+        _save_metrics_to_runs(all_metrics=self.all_metrics)
+                
         # Creating DataFrame
         return pd.DataFrame(data_rows, columns=columns)
 

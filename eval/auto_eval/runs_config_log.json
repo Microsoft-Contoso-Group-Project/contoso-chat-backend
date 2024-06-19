@@ -1,19 +1,37 @@
 [
     {
         "model_name": "Phi_3_mini_4k_instruct",
-        "top_p": 0.3,
+        "top_p": 0.5,
         "embedding": "text-embedding-ada-002",
         "template": "original"
     },
     {
         "model_name": "meta_llama3_instruct_70B",
-        "top_p": 0.3,
+        "top_p": 0.5,
         "embedding": "text-embedding-ada-002",
         "template": "original"
     },
     {
-        "model_name": "Phi_3_mini_128k_instruct",
-        "top_p": 0.3,
+        "model_name": "Phi_3_mini_4k_instruct",
+        "top_p": 0.1,
+        "embedding": "text-embedding-ada-002",
+        "template": "original"
+    },
+    {
+        "model_name": "Phi_3_mini_4k_instruct",
+        "top_p": 0.9,
+        "embedding": "text-embedding-ada-002",
+        "template": "original"
+    },
+    {
+        "model_name": "meta_llama3_instruct_70B",
+        "top_p": 0.1,
+        "embedding": "text-embedding-ada-002",
+        "template": "original"
+    },
+    {
+        "model_name": "meta_llama3_instruct_70B",
+        "top_p": 0.9,
         "embedding": "text-embedding-ada-002",
         "template": "original"
     }
