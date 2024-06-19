@@ -17,18 +17,17 @@ inputs:
     is_chat_input: true
     type: string
 nodes:
-- aggregation: false
-  inputs:
-    connection: aoai-connection
-    deployment_name: text-embedding-ada-002
-    input: ${inputs.question}
-  name: question_embedding
+- inputs:
+    connection: bge-large
+    deployment_name: bge-large-en-v1.5
+    question: ${inputs.question}
+  name: custom_question_embedding
   source:
-    tool: promptflow.tools.embedding.embedding
-    type: package
+    path: custom_embedding.py
+    type: code
   type: python
 - inputs:
-    embedding: ${question_embedding.output}
+    embedding: ${custom_question_embedding.output}
     index_name: contoso-products
     question: ${inputs.question}
     search: contoso-search
@@ -55,12 +54,12 @@ nodes:
     type: code
   type: prompt
 - api: chat
-  connection: meta_llama3_instruct_70B
+  connection: Phi_3_mini_4k_instruct
   inputs:
-    deployment_name: meta_llama3_instruct_Az
+    deployment_name: gpt-35-turbo
     prompt_text: ${customer_prompt.output}
     question: ${inputs.question}
-    top_p: 0.9
+    top_p: 0.1
   name: llm_response
   source:
     path: llm_response.jinja2
@@ -72,5 +71,6 @@ outputs:
     reference: ${llm_response.output}
     type: string
   context:
+    is_chat_output: false
     reference: ${retrieve_documentation.output}
     type: string
